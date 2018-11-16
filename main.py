@@ -266,8 +266,10 @@ def spin_thin(launchpad, delay, round=2):
             launchpad.LedCtrlXY(0, (8 - t + 1 - 2 * reverse) % 8, 0, 0)
             launchpad.LedCtrlXY(7, (t - 1 + 1 + 2 * reverse) % 8, 0, 0)
             time.sleep(delay)
-    # launchpad.Reset()
-    launchpad.LedCtrlRawRapid([0 for i in range(64)])
+    launchpad.LedCtrlXY(7, 1, 0, 0)
+    launchpad.LedCtrlXY(7, 8, 0, 0)
+    launchpad.LedCtrlXY(0, 1, 0, 0)
+    launchpad.LedCtrlXY(0, 8, 0, 0)
     print("deltatime:%f\tspin_thin" % (time.time() - timestart))
 
 
@@ -293,9 +295,11 @@ def spin(launchpad, delay, round):
             launchpad.LedCtrlXY(2, (8 - t + 1 - 2 * reverse + 2) % 4 + 2, 0, 0)
             launchpad.LedCtrlXY(5, (t - 1 + 1 + 2 * reverse + 2) % 4 + 2, 0, 0)
             time.sleep(delay)
-    # launchpad.Reset()
-    launchpad.LedCtrlRawRapid([0 for i in range(64)])
-    print("deltatime:%f\tspin_thin" % (time.time() - timestart))
+    launchpad.LedCtrlXY(5, 3, 0, 0)
+    launchpad.LedCtrlXY(5, 6, 0, 0)
+    launchpad.LedCtrlXY(2, 3, 0, 0)
+    launchpad.LedCtrlXY(2, 6, 0, 0)
+    print("deltatime:%f\tspin" % (time.time() - timestart))
 
 
 def randomchar(launchpad, interval):
