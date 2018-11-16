@@ -18,10 +18,19 @@ CURRENT_POINT = 0
 POINT_16 = [(i, 0) for i in range(8)] + [(8, t) for t in range(1, 9)]
 inSquad = False
 inSpread = False
+TOTALCOUNT = 0
+FAILURECOUNT = 0
+LIGHT_DECREASE = 0
+BUTTONID = -1
 
 
 def RANDOM_RGY(number):
-    RGY = ((0, 3), (3, 0), (3, 3), (3, 1), (1, 3))
+    global LIGHT_DECREASE
+    RGY = ((0 - LIGHT_DECREASE, 3 - LIGHT_DECREASE) \
+               , (3 - LIGHT_DECREASE, 0 - LIGHT_DECREASE) \
+               , (3 - LIGHT_DECREASE, 3 - LIGHT_DECREASE) \
+               , (3 - LIGHT_DECREASE, 1 - LIGHT_DECREASE) \
+               , (1 - LIGHT_DECREASE, 3 - LIGHT_DECREASE))
     # print([random.choice(RGY) for i in range(number)])
     return (random.choice(RGY) for i in range(number))
 
@@ -183,8 +192,6 @@ def squad_part_2(launchpad, delay, style):
     timestart = time.time()
     # launchpad.Reset()
     if style == 31:
-        R = random.randint(2, 4)
-        G = random.randint(2, 4)
         for x in range(4):
             for y in range(1, 5):
                 # ---------<^-----------------
@@ -490,7 +497,7 @@ def listen():
             if a[0][0][2] == 127:
                 print(a)
                 # t1 = threading.Thread(target=lightAllRandom,args=(launchpad,0.2))
-                t1 = threading.Thread(target=randomchar, args=(launchpad, 0.0))
+                t1 = threading.Thread(target=spread, args=(a[0][0][1], launchpad, 0.2, 1))
                 t1.start()
 
 
@@ -547,10 +554,12 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
 
                     if style == 3:
                         flash_thread = threading.Thread(target=spread,
-                                                        args=(None, launchpad, (interval - 0.13) / 16, 1))
+                                                        args=(BUTTONID if BUTTONID != -1 else None, launchpad,
+                                                              (interval - 0.13) / 16, 1))
                     if flash_thread is None and inCircle == -1:
                         flash_thread = threading.Thread(target=spread,
-                                                        args=(None, launchpad, (interval - 0.13) / 32, 2))
+                                                        args=(BUTTONID if BUTTONID != -1 else None, launchpad,
+                                                              (interval - 0.13) / 32, 2))
 
                 else:  # 如果是一个短拍
                     style = random.choice([1, 2, 3])
@@ -677,10 +686,39 @@ def flash2(mainbeatpoint):
     pass
 
 
-launchpad = Launchpad()
-# launchpad.ListAll()
-
-launchpad.Open()
+def input2(mainbeatpoint):
+    global TOTALCOUNT, FAILURECOUNT, LIGHT_DECREASE, BUTTONID
+    while not playAudio.isplaying():
+        pass
+        time.sleep(0.01)
+    print("[AUDIO IS PLAYING]%f" % time.time())
+    timestart = time.time()
+    for i in range(len(mainbeatpoint)):
+        while time.time() - timestart < mainbeatpoint[i] - 0.1:
+            # 如果从开始播放到现在的时间还没到绝对节拍时间，那就sleep
+            # 这一条保证了任何一个节拍的误差都在10ms之内
+            # 也保证了不会出现单线程的脱节情况
+            time.sleep(0.01)
+        while time.time() - timestart < mainbeatpoint[i] + 0.1:
+            a = launchpad.EventRaw()
+            if a != []:
+                if a[0][0][2] == 127:
+                    TOTALCOUNT += 1
+                    FAILURECOUNT = 0
+                    BUTTONID = a[0][0][1]
+                    print("[{:_^30}]".format(TOTALCOUNT))
+                    break
+        else:
+            FAILURECOUNT += 1
+            print("[{:^^30}]".format(FAILURECOUNT))
+        if FAILURECOUNT < 2:
+            LIGHT_DECREASE = 0
+        elif FAILURECOUNT < 4:
+            LIGHT_DECREASE = 1
+        elif FAILURECOUNT < 8:
+            LIGHT_DECREASE = 2
+        else:
+            LIGHT_DECREASE = 3
 
 
 def START():
@@ -700,7 +738,14 @@ def START2():
     mode2_data = eval(pyAA.getmainbeatpoint(FILE_NAME, FILE_PATH))
     flash2_thread = threading.Thread(target=flash2, args=(mode2_data,))
     flash2_thread.start()
+    input_thread = threading.Thread(target=input2, args=(mode2_data,))
+    input_thread.start()
     START()
+
+
+launchpad = Launchpad()
+# launchpad.ListAll()
+launchpad.Open()
 
 
 def get_file():
