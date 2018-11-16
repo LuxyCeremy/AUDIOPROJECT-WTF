@@ -65,6 +65,7 @@ def spread(key, launchpad, delay, STYLE):
         XY = KEY_TO_XY(key)
         x = XY[0]
         y = XY[1]
+        print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]"%(x,y))
     # print(x,y)
     [(R, G)] = RANDOM_RGY(1)
     launchpad.LedCtrlXY(x, y, R, G)
@@ -701,7 +702,11 @@ def input2(mainbeatpoint):
             time.sleep(0.01)
         while time.time() - timestart < mainbeatpoint[i] + 0.1:
             a = launchpad.EventRaw()
+
+            time.sleep(0.01)
             if a != []:
+                launchpad.ButtonFlush()
+                print(a)
                 if a[0][0][2] == 127:
                     TOTALCOUNT += 1
                     FAILURECOUNT = 0
