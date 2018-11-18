@@ -65,7 +65,7 @@ def spread(key, launchpad, delay, STYLE):
         XY = KEY_TO_XY(key)
         x = XY[0]
         y = XY[1]
-        print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]"%(x,y))
+        print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]" % (x, y))
     # print(x,y)
     [(R, G)] = RANDOM_RGY(1)
     launchpad.LedCtrlXY(x, y, R, G)
@@ -136,6 +136,72 @@ def spread(key, launchpad, delay, STYLE):
         inSpread = False
     print("deltatime:%f0\tspread style:%d" % (time.time() - time1, STYLE))
     # launchpad.Reset()
+
+
+def spread_return(key, launchpad, delay):
+    global inSpread
+    x = 0
+    y = 0
+    if key is None:
+        x = random.randint(0, 7)
+        y = random.randint(1, 8)
+    else:
+        XY = KEY_TO_XY(key)
+        x = XY[0]
+        y = XY[1]
+        print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]" % (x, y))
+    # print(x,y)
+    [(R, G)] = RANDOM_RGY(1)
+    launchpad.LedCtrlXY(x, y, R, G)
+
+    lighted = [[False for i in range(8)] for t in range(8)]
+    list_to_lightOn = []
+    list_to_lightOff = []
+    list_to_return = []
+    list_to_lightOn.append([x, y - 1])
+    timestart = time.time()
+    inSpread = True
+    while not len(list_to_lightOn) == 0:
+        list_to_return.append(list_to_lightOn)
+        list_to_lightOff.append(list_to_lightOn)
+        # print(len(list_to_lightOn))
+        list2 = list_to_lightOn
+        list_to_lightOn = []
+        for get in list2:
+            lighted[get[0]][get[1]] = True
+            launchpad.LedCtrlXY(get[0], get[1] + 1, R, G)
+            if get[1] + 1 < 8 and lighted[get[0]][get[1] + 1] == False \
+                    and [get[0], get[1] + 1] not in list_to_lightOn:
+                list_to_lightOn.append([get[0], get[1] + 1])
+            if get[1] - 1 >= 0 and lighted[get[0]][get[1] - 1] == False \
+                    and [get[0], get[1] - 1] not in list_to_lightOn:
+                list_to_lightOn.append([get[0], get[1] - 1])
+            if get[0] + 1 < 8 and lighted[get[0] + 1][get[1]] == False \
+                    and [get[0] + 1, get[1]] not in list_to_lightOn:
+                list_to_lightOn.append([get[0] + 1, get[1]])
+            if get[0] - 1 >= 0 and lighted[get[0] - 1][get[1]] == False \
+                    and [get[0] - 1, get[1]] not in list_to_lightOn:
+                list_to_lightOn.append([get[0] - 1, get[1]])
+        time.sleep(delay)
+    # print(list_to_lightOff)
+    for sentence in list_to_lightOff:
+        for ITEM in sentence:
+            if not inSquad:
+                launchpad.LedCtrlXY(ITEM[0], ITEM[1] + 1, 0, 0)
+        time.sleep(delay)
+    list_to_return_clone = list_to_return.copy()
+    while list_to_return:
+        for ITEM in list_to_return.pop():
+            if not inSquad:
+                launchpad.LedCtrlXY(ITEM[0], ITEM[1] + 1, R, G)
+        time.sleep(delay)
+    while list_to_return_clone:
+        for ITEM in list_to_return_clone.pop():
+            if not inSquad:
+                launchpad.LedCtrlXY(ITEM[0], ITEM[1] + 1, 0, 0)
+        time.sleep(delay)
+    inSpread = False
+    print("deltatime:%f0\tspread_return" % (time.time() - timestart))
 
 
 def squad_part(launchpad, delay, style):
@@ -279,6 +345,38 @@ def spin_thin(launchpad, delay, round=2):
     launchpad.LedCtrlXY(0, 1, 0, 0)
     launchpad.LedCtrlXY(0, 8, 0, 0)
     print("deltatime:%f\tspin_thin" % (time.time() - timestart))
+
+
+def spin_thin_loop(launchpad, interval):
+    timestart = time.time()
+    reverse = random.randint(0, 1)
+    [(R, G)] = RANDOM_RGY(1)
+    spin_round = int(interval / 0.22)
+    for r in range(spin_round):
+        if r % 4 == 0:
+            [(R, G)] = RANDOM_RGY(1)
+        for x in range(8):
+            if inSquad or inSpread:
+                return
+            t = x
+            if reverse == 1:
+                t = 7 - x
+
+            launchpad.LedCtrlXY(t, 1, R, G)
+            launchpad.LedCtrlXY(7 - t, 8, R, G)
+            launchpad.LedCtrlXY(0, 8 - t, R, G)
+            launchpad.LedCtrlXY(7, t + 1, R, G)
+
+            launchpad.LedCtrlXY((t - 1 + 2 * reverse) % 8, 1, 0, 0)
+            launchpad.LedCtrlXY((7 - t + 1 - 2 * reverse) % 8, 8, 0, 0)
+            launchpad.LedCtrlXY(0, (8 - t + 1 - 2 * reverse) % 8, 0, 0)
+            launchpad.LedCtrlXY(7, (t - 1 + 1 + 2 * reverse) % 8, 0, 0)
+            time.sleep(0.02)
+    launchpad.LedCtrlXY(7, 1, 0, 0)
+    launchpad.LedCtrlXY(7, 8, 0, 0)
+    launchpad.LedCtrlXY(0, 1, 0, 0)
+    launchpad.LedCtrlXY(0, 8, 0, 0)
+    print("deltatime:%f\tspin_thin_loop" % (time.time() - timestart))
 
 
 def spin(launchpad, delay, round):
@@ -490,16 +588,38 @@ def edge_cut(launchpad, delay, reverse, PERIOD):
     print("deltatime:%f\tedge_cut" % (time.time() - timestart))
 
 
-def listen():
-    while True:
-        time.sleep(0.001)
-        a = launchpad.EventRaw()
-        if a != []:
-            if a[0][0][2] == 127:
-                print(a)
-                # t1 = threading.Thread(target=lightAllRandom,args=(launchpad,0.2))
-                t1 = threading.Thread(target=spread, args=(a[0][0][1], launchpad, 0.2, 1))
-                t1.start()
+def star_stream(launchpad, interval):
+    timestart = time.time()
+    stars = []
+
+    stars_count = int((interval - 0.3) / 0.065)
+    stars_to_pop = []
+    last_two_y = []
+    for r in range(stars_count + 8):
+
+        if r < stars_count:
+            y = -1
+            while y == -1 or y in last_two_y:
+                y = random.randint(1, 9)
+            [(temp_color_r, temp_color_g)] = RANDOM_RGY(1)
+            stars.append((0, y, temp_color_r, temp_color_g))
+            last_two_y.append(y)
+            if len(last_two_y) > 2:
+                last_two_y.pop(0)
+        for i in range(len(stars)):
+            (x, y, temp_color_r, temp_color_g) = stars[i]
+            launchpad.LedCtrlXY(x, y, temp_color_r, temp_color_g)
+            launchpad.LedCtrlXY(x - 1 % 8, y, 0, 0)
+            if x == 7:
+                stars_to_pop.append(i)
+            else:
+                stars[i] = (x + 1, y, temp_color_r, temp_color_g)
+        time.sleep(0.05)
+        for stp in stars_to_pop:
+            (x, y, r, g) = stars.pop(stp)
+            launchpad.LedCtrlXY(x % 8, y, 0, 0)
+        stars_to_pop = []
+    print("deltatime:%f\tstar_stream" % (time.time() - timestart))
 
 
 def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
@@ -525,7 +645,6 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
         interval = -1.0
         if (i < len(beatpoint) - 1):
             interval = beatpoint[i + 1] - beatpoint[i]  # 计算与下一个音符的间隔，决定使用长节拍动画还是短节拍动画
-            print("[interval]%f" % interval, end="\t")
         while time.time() - timestart < beatpoint[i]:
             # 如果从开始播放到现在的时间还没到绝对节拍时间，那就sleep
             # 这一条保证了任何一个节拍的误差都在10ms之内
@@ -539,7 +658,26 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
             launchpad.LedAllOn(0)
             launchpad.Close()  # 防止报错，记得关闭
             return
-        if inCircle == -1:
+        if interval > 6 * beatsecond:
+            interval
+            while True:
+                temp_interval = beatpoint[i + 2] - beatpoint[i + 1]
+                if temp_interval > 6 * beatsecond:
+                    interval += temp_interval
+                    i += 1
+                else:
+                    break
+            flash_thread = threading.Thread(target=star_stream,
+                                            args=(launchpad, interval))
+        # elif interval > 6 * beatsecond:
+        #     flash_thread = threading.Thread(target=spin_thin_loop,
+        #                                     args=(launchpad, interval))
+        elif interval > 2 * beatsecond:
+            flash_thread = threading.Thread(target=spread_return,
+                                            args=(BUTTONID if BUTTONID != -1 else None, launchpad,
+                                                  (interval - 0.25) / 64))
+
+        elif inCircle == -1:
             if beatmain[i] < 0.005:  # 如果强节拍系数小于5毫秒就判断是一个强拍（然而真正的强拍差都是0.0f，我这就算网开拌面了）
                 if interval > beatsecond:  # 如果是一个长拍
                     style = random.randint(1, 5)
@@ -591,7 +729,7 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
                         flash_thread = threading.Thread(target=spin,
                                                         args=(
                                                             launchpad, (interval - 0.15) / 16 if interval > 0.15 else 0,
-                                                            2))
+                                                            4))
                     if flash_thread is None and inCircle == -1:
                         flash_thread = threading.Thread(target=spin_thin,
                                                         args=(
@@ -657,6 +795,8 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
         if flash_thread == None:
             flash_thread = threading.Thread(target=testblink, args=(launchpad,))
             # 如果到这里什么都没分配进来，那么闪烁警告
+
+        print("[interval]%f" % interval, end="\t")
         flash_thread.start()
 
 
@@ -757,6 +897,20 @@ def get_file():
     global FILE_NAME, FILE_PATH
     FILE_PATH = askopenfilename()
     FILE_NAME = os.path.basename(os.path.realpath(FILE_PATH))
+
+
+def listen():
+    while True:
+        time.sleep(0.001)
+        a = launchpad.EventRaw()
+        if a != []:
+            if a[0][0][2] == 127:
+                print(a)
+                # t1 = threading.Thread(target=lightAllRandom,args=(launchpad,0.2))
+                interval = 1
+                t1 = threading.Thread(target=spin, args=(launchpad, (interval - 0.15) / 16 if interval > 0.15 else 0,
+                                                            4))
+                t1.start()
 
 
 if __name__ == "__main__":

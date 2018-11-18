@@ -9,7 +9,7 @@ from librosa.beat import beat_track
 from librosa.onset import onset_strength
 import numpy as np
 
-ONSET_DETECT_RATIO = 2
+ONSET_DETECT_RATIO = 8
 
 def getbeatpoint(filename, filepath):
     '''
@@ -40,8 +40,9 @@ def getbeatpoint(filename, filepath):
     onset_envolope = onset_strength(y=y, sr=sr)
     new_frames_list = []
     for beat in beats1:
-        if onset_envolope[beat]> ONSET_DETECT_RATIO:
+        if onset_envolope[beat]> onset_envolope.max()/ONSET_DETECT_RATIO:
             new_frames_list.append(beat)
+    print("{MAX_ONSET}:%f"%onset_envolope.max())
     new_beats_frame = np.array(new_frames_list)
     bigbeatlocation = frames_to_time(beats, sr=sr)
     beatlocation = frames_to_time(new_beats_frame, sr=sr).tolist()
@@ -49,7 +50,7 @@ def getbeatpoint(filename, filepath):
     for beat in beatlocation:  # 分别计算出每个节拍到主要节拍点的距离，也就是这个节拍的主要程度
 
         p = abs(bigbeatlocation - beat)
-        print("%f:   %f" % (beat, p.min()))
+        # print("%f:   %f" % (beat, p.min()))
         beatmain.append(p.min())
     file = open("dat/%s.bpf" % filename, mode="w")
     file.write(repr([tempo, beatlocation, beatmain]))
