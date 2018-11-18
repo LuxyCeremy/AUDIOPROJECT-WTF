@@ -763,7 +763,7 @@ if __name__ == "__main__":
 
     if launchpad.Check():  # 如果launchpad已经连接
         launchpad.Reset()
-        mode = 2
+        mode = 1
         # 0：监听模式1:播放模式；2：简易模式
         if mode == 0:
             listen()
