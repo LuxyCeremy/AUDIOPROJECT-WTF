@@ -37,3 +37,7 @@ def convert_to_monowav(filename, filepath):
     f.writeframes(raw_data)
     f.close()
     return (wav_filename)  # 只返回路径
+if __name__ =="__main__":
+    convert_to_monowav("Beautiful lies.mp3"\
+                       ,"F:\Python工程\AudioProject1-3d1a91dbdc9106969a"
+                        "227db74b81439878923131\AUDIOPROJECT-WTF\Beautiful lies.mp3")

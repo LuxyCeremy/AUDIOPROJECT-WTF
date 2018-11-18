@@ -1,6 +1,5 @@
-import launchpad_py
-launchpad = launchpad_py.Launchpad()
-# launchpad.ListAll()
+import librosa
 
-launchpad.Open()
-launchpad.LedCtrlString("123456",3,3,-1)
+y, sr = librosa.load("Beautiful lies.mp3.wav")
+tempo, beats = librosa.beat.beat_track(y=y, sr=sr, tightness=100)  # 计算主要节拍点
+beatsA =beats.tolist()
