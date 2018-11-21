@@ -1,5 +1,10 @@
 import librosa
+import soundfile as sf
 
-y, sr = librosa.load("Beautiful lies.mp3.wav")
-tempo, beats = librosa.beat.beat_track(y=y, sr=sr, tightness=100)  # 计算主要节拍点
-beatsA =beats.tolist()
+# Get example audio file
+filename = "英雄联盟 - 刀锋舞者艾瑞莉娅-登录界面音乐.mp3.wav"
+
+data, samplerate = sf.read(filename, dtype='float32')
+data = data.T
+data_22k = librosa.resample(data, samplerate, 22050)
+a=0

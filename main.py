@@ -21,6 +21,7 @@ inSpread = False
 TOTALCOUNT = 0
 FAILURECOUNT = 0
 LIGHT_DECREASE = 0
+IS_NOT_AUTO = True
 BUTTONID = -1
 
 
@@ -38,7 +39,7 @@ def RANDOM_RGY(number):
 def KEY_TO_XY(key):
     Y = key // 16 + 1
     X = key % 16
-    return [X, Y]
+    return (X, Y)
 
 
 def samebeat(beatpointcut):
@@ -62,9 +63,8 @@ def spread(key, launchpad, delay, STYLE):
         x = random.randint(0, 7)
         y = random.randint(1, 8)
     else:
-        XY = KEY_TO_XY(key)
-        x = XY[0]
-        y = XY[1]
+        (x, y) = KEY_TO_XY(key)
+
         print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]" % (x, y))
     # print(x,y)
     [(R, G)] = RANDOM_RGY(1)
@@ -146,9 +146,7 @@ def spread_return(key, launchpad, delay):
         x = random.randint(0, 7)
         y = random.randint(1, 8)
     else:
-        XY = KEY_TO_XY(key)
-        x = XY[0]
-        y = XY[1]
+        (x, y) = KEY_TO_XY(key)
         print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]" % (x, y))
     # print(x,y)
     [(R, G)] = RANDOM_RGY(1)
@@ -337,8 +335,8 @@ def spin_thin(launchpad, delay, round=2):
 
             launchpad.LedCtrlXY((t - 1 + 2 * reverse) % 8, 1, 0, 0)
             launchpad.LedCtrlXY((7 - t + 1 - 2 * reverse) % 8, 8, 0, 0)
-            launchpad.LedCtrlXY(0, (8 - t + 1 - 2 * reverse) % 8, 0, 0)
-            launchpad.LedCtrlXY(7, (t - 1 + 1 + 2 * reverse) % 8, 0, 0)
+            launchpad.LedCtrlXY(0, (8 - t + 1 - 2 * reverse - 1) % 8 + 1, 0, 0)
+            launchpad.LedCtrlXY(7, (t - 1 + 1 + 2 * reverse - 1) % 8 + 1, 0, 0)
             time.sleep(delay)
     launchpad.LedCtrlXY(7, 1, 0, 0)
     launchpad.LedCtrlXY(7, 8, 0, 0)
@@ -641,10 +639,13 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
     timestart = time.time()
     inCircle = -1  # 有很多动画不是一拍就能完成的，如果没有完成，不会生成新的动画，直到这一动画序列结束
     REVERSE = 0  # 由于某些连续动画的方向是相关的，存在这里方便调用
-    for i in range(len(beatpoint)):
+    # for i in range(len(beatpoint)):
+    i = 0
+    while i < len(beatpoint):
         interval = -1.0
         if (i < len(beatpoint) - 1):
             interval = beatpoint[i + 1] - beatpoint[i]  # 计算与下一个音符的间隔，决定使用长节拍动画还是短节拍动画
+            print("[interval]%f" % interval, end="\t")
         while time.time() - timestart < beatpoint[i]:
             # 如果从开始播放到现在的时间还没到绝对节拍时间，那就sleep
             # 这一条保证了任何一个节拍的误差都在10ms之内
@@ -659,12 +660,13 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
             launchpad.Close()  # 防止报错，记得关闭
             return
         if interval > 6 * beatsecond:
-            interval
-            while True:
+            while True and i < len(beatpoint) - 2:
                 temp_interval = beatpoint[i + 2] - beatpoint[i + 1]
+
+                print("{%d}{%f}" % (i, temp_interval))
                 if temp_interval > 6 * beatsecond:
                     interval += temp_interval
-                    i += 1
+                    i = i + 1
                 else:
                     break
             flash_thread = threading.Thread(target=star_stream,
@@ -680,18 +682,21 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
         elif inCircle == -1:
             if beatmain[i] < 0.005:  # 如果强节拍系数小于5毫秒就判断是一个强拍（然而真正的强拍差都是0.0f，我这就算网开拌面了）
                 if interval > beatsecond:  # 如果是一个长拍
-                    style = random.randint(1, 5)
+                    style = random.randint(1, 6)
                     if style == 1:
                         if samebeat(beatpoint[i:i + 4]):
                             inCircle = 31
                     if style == 2:
+                        if samebeat(beatpoint[i:i + 3]):
+                            inCircle = 51
+                    if style == 3:
                         flash_thread = threading.Thread(target=slash_spread2,
                                                         args=(launchpad, (interval - 0.13) / 24, random.randint(0, 1)))
                     if style == 4:  # LONG
                         flash_thread = threading.Thread(target=slash_spread,
                                                         args=(launchpad, (interval - 0.13) / 15, random.randint(0, 1)))
 
-                    if style == 3:
+                    if style == 5:
                         flash_thread = threading.Thread(target=spread,
                                                         args=(BUTTONID if BUTTONID != -1 else None, launchpad,
                                                               (interval - 0.13) / 16, 1))
@@ -796,15 +801,16 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
             flash_thread = threading.Thread(target=testblink, args=(launchpad,))
             # 如果到这里什么都没分配进来，那么闪烁警告
 
-        print("[interval]%f" % interval, end="\t")
         flash_thread.start()
+        i += 1
 
 
 def blink_point(launchpad):
     global CURRENT_POINT
     (X, Y) = POINT_16[CURRENT_POINT]
     (X1, Y1) = POINT_16[CURRENT_POINT - 1 if CURRENT_POINT > 0 else 15]
-    launchpad.LedCtrlXY(X, Y, 3, 3)
+    (r, g) = (3, 3) if IS_NOT_AUTO else (0, 3)
+    launchpad.LedCtrlXY(X, Y, r, g)
     launchpad.LedCtrlXY(X1, Y1, 0, 0)
     CURRENT_POINT += 1
     if CURRENT_POINT == 16:
@@ -824,11 +830,10 @@ def flash2(mainbeatpoint):
             # 也保证了不会出现单线程的脱节情况
             time.sleep(0.01)
         blink_point(launchpad)
-    pass
 
 
-def input2(mainbeatpoint):
-    global TOTALCOUNT, FAILURECOUNT, LIGHT_DECREASE, BUTTONID
+def input2(mainbeatpoint, beatsecond):
+    global TOTALCOUNT, FAILURECOUNT, LIGHT_DECREASE, BUTTONID, IS_NOT_AUTO
     while not playAudio.isplaying():
         pass
         time.sleep(0.01)
@@ -839,6 +844,7 @@ def input2(mainbeatpoint):
             # 如果从开始播放到现在的时间还没到绝对节拍时间，那就sleep
             # 这一条保证了任何一个节拍的误差都在10ms之内
             # 也保证了不会出现单线程的脱节情况
+            launchpad.ButtonFlush()
             time.sleep(0.01)
         while time.time() - timestart < mainbeatpoint[i] + 0.1:
             a = launchpad.EventRaw()
@@ -851,26 +857,38 @@ def input2(mainbeatpoint):
                     TOTALCOUNT += 1
                     FAILURECOUNT = 0
                     BUTTONID = a[0][0][1]
+                    if KEY_TO_XY(BUTTONID) in POINT_16:
+                        IS_NOT_AUTO = False
+                        BUTTONID = -1
+                        LIGHT_DECREASE = 0
+                    elif not IS_NOT_AUTO:
+                        IS_NOT_AUTO = True
+                        FAILURECOUNT = 0
+                        LIGHT_DECREASE = 0
                     print("[{:_^30}]".format(TOTALCOUNT))
                     break
         else:
-            FAILURECOUNT += 1
-            print("[{:^^30}]".format(FAILURECOUNT))
-        if FAILURECOUNT < 2:
-            LIGHT_DECREASE = 0
-        elif FAILURECOUNT < 4:
-            LIGHT_DECREASE = 1
-        elif FAILURECOUNT < 8:
-            LIGHT_DECREASE = 2
-        else:
-            LIGHT_DECREASE = 3
+            if i + 1 < len(mainbeatpoint) and mainbeatpoint[i + 1] - mainbeatpoint[i] < 6 * beatsecond:
+                FAILURECOUNT += 1
+                print("[{:^^30}]".format(FAILURECOUNT))
+            else:
+                FAILURECOUNT = 0
+        if IS_NOT_AUTO == True:
+            if FAILURECOUNT < 4:
+                LIGHT_DECREASE = 0
+            elif FAILURECOUNT < 6:
+                LIGHT_DECREASE = 1
+            elif FAILURECOUNT < 8:
+                LIGHT_DECREASE = 2
+            else:
+                LIGHT_DECREASE = 3
 
 
 def START():
-    mode1_data = eval(pyAA.getbeatpoint(FILE_NAME, FILE_PATH))
-    tempo = mode1_data[0]
-    beatpoint = mode1_data[1]
-    beatmain = mode1_data[2]
+    data = eval(pyAA.getbeatpoint(FILE_NAME, FILE_PATH))
+    tempo = data[0]
+    beatpoint = data[1]
+    beatmain = data[2]
     print("[TEMPO]:%f" % tempo)
     print("[TOTAL BEATPOINT]:%d" % len(beatpoint))
     print("[STARTFLASH]%f" % time.time())
@@ -880,10 +898,12 @@ def START():
 
 
 def START2():
-    mode2_data = eval(pyAA.getmainbeatpoint(FILE_NAME, FILE_PATH))
-    flash2_thread = threading.Thread(target=flash2, args=(mode2_data,))
+    data = eval(pyAA.getbeatpoint(FILE_NAME, FILE_PATH))
+    mode2_beatpoint = data[3]
+    tempo = data[0]
+    flash2_thread = threading.Thread(target=flash2, args=(mode2_beatpoint,))
     flash2_thread.start()
-    input_thread = threading.Thread(target=input2, args=(mode2_data,))
+    input_thread = threading.Thread(target=input2, args=(mode2_beatpoint, 55 / tempo))
     input_thread.start()
     START()
 
@@ -909,7 +929,7 @@ def listen():
                 # t1 = threading.Thread(target=lightAllRandom,args=(launchpad,0.2))
                 interval = 1
                 t1 = threading.Thread(target=spin, args=(launchpad, (interval - 0.15) / 16 if interval > 0.15 else 0,
-                                                            4))
+                                                         4))
                 t1.start()
 
 
@@ -917,7 +937,7 @@ if __name__ == "__main__":
 
     if launchpad.Check():  # 如果launchpad已经连接
         launchpad.Reset()
-        mode = 1
+        mode = 2
         # 0：监听模式1:播放模式；2：简易模式
         if mode == 0:
             listen()

@@ -28,6 +28,7 @@ def convert_to_monowav(filename, filepath):
     raw_data = sound.raw_data  # 作为wav的数据
     sample_width = sound.sample_width  # 采样宽度？
     # 打开文件，写成一个单声道wav文件，便于计算beatpoint
+
     wav_filename = "dat/%s.wav" % filename
     f = waveopen(wav_filename, 'wb')
     f.setnchannels(1)

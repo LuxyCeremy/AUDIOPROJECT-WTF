@@ -7,9 +7,18 @@ from librosa import load, frames_to_time
 import os
 from librosa.beat import beat_track
 from librosa.onset import onset_strength
+from librosa.effects import percussive
+from librosa.output import write_wav
 import numpy as np
+import time
 
-ONSET_DETECT_RATIO = 8
+ONSET_DETECT_RATIO = 1000
+TYPE = "kaiser_fast"
+# TYPE = 'kaiser_best'
+
+
+# TYPE = 'scipy'
+
 
 def getbeatpoint(filename, filepath):
     '''
@@ -24,60 +33,53 @@ def getbeatpoint(filename, filepath):
     '''
     try:
         file = open("dat/%s.bpf" % filename, mode="r")
-        content = file.read()
-        file.close()
         if (os.path.exists("dat/%s.wav" % filename)):
             os.remove("dat/%s.wav" % filename)
-        return content
-    except Exception as e:
-        print("No bpf found, initializing..."+str(e))
-        pass
-    wav_filename = audioconvert.convert_to_monowav(filename, filepath)
-    y, sr = load(wav_filename)
 
-    tempo, beats = beat_track(y=y, sr=sr, tightness=100)  # 计算主要节拍点
-    tempo1, beats1 = beat_track(y=y, sr=sr, tightness=2)  # 计算节拍点，tightness就是对节拍的吸附性，越低越混乱
-    onset_envolope = onset_strength(y=y, sr=sr)
+    except Exception as e:
+        print("No bpf found, initializing..." + str(e))
+        path = writebpf(filename, filepath)
+        file = open(path, mode="r")
+    content = file.read()
+    file.close()
+    return content
+
+
+def writebpf(filename, filepath):
+    wav_filename = audioconvert.convert_to_monowav(filename, filepath)
+    # data, samplerate = sf.read(filename, dtype='float32')
+    timestart = time.time()
+    y, sr = load(wav_filename, dtype="float32", res_type=TYPE)
+    # --------------------WRITE FILE TO TEST
+
+    # maxv = np.iinfo(np.int16).max
+    # write_wav("out_int16.wav", y_perc, sr)
+    # --------------------
+    print("{LOAD TIME}:%f" % (time.time() - timestart))
+    tempo, beats = beat_track(y=y, tightness=100)  # 计算主要节拍点
+    tempo1, beats1 = beat_track(y=y, tightness=2)  # 计算节拍点，tightness就是对节拍的吸附性，越低越混乱
+    onset_envolope = onset_strength(y=y)
+    onset_all_beat = []
+    for beat in beats1:
+        onset_all_beat.append(onset_envolope[beat])
+    average_onset = np.mean(onset_all_beat)
     new_frames_list = []
     for beat in beats1:
-        if onset_envolope[beat]> onset_envolope.max()/ONSET_DETECT_RATIO:
+        if onset_envolope[beat] > average_onset / ONSET_DETECT_RATIO:
             new_frames_list.append(beat)
-    print("{MAX_ONSET}:%f"%onset_envolope.max())
+    print("{MAX_ONSET}:%f" % onset_envolope.max())
     new_beats_frame = np.array(new_frames_list)
-    bigbeatlocation = frames_to_time(beats, sr=sr)
-    beatlocation = frames_to_time(new_beats_frame, sr=sr).tolist()
+    mainbeatlocation = frames_to_time(beats)
+    beatlocation = frames_to_time(new_beats_frame).tolist()
     beatmain = []
     for beat in beatlocation:  # 分别计算出每个节拍到主要节拍点的距离，也就是这个节拍的主要程度
 
-        p = abs(bigbeatlocation - beat)
+        p = abs(mainbeatlocation - beat)
         # print("%f:   %f" % (beat, p.min()))
         beatmain.append(p.min())
     file = open("dat/%s.bpf" % filename, mode="w")
-    file.write(repr([tempo, beatlocation, beatmain]))
+    file.write(repr([tempo, beatlocation, beatmain, mainbeatlocation.tolist()]))
     file.close()
     if (os.path.exists("dat/%s.wav" % filename)):
         os.remove("dat/%s.wav" % filename)
-    return repr([tempo, beatlocation, beatmain])
-def getmainbeatpoint(filename, filepath):
-    try:
-        file = open("dat/%s.mbpf" % filename, mode="r")
-        content = file.read()
-        file.close()
-        if (os.path.exists("dat/%s.wav" % filename)):
-            os.remove("dat/%s.wav" % filename)
-        return content
-    except Exception as e:
-        print("No mbpf found, initializing...")
-        print(e)
-        pass
-    wav_filename = audioconvert.convert_to_monowav(filename, filepath)
-    y, sr = load(wav_filename)
-
-    tempo, beats = beat_track(y=y, sr=sr, tightness=100)  # 计算主要节拍点
-    bigbeatlocation = frames_to_time(beats, sr=sr).tolist()
-    file = open("dat/%s.mbpf" % filename, mode="w")
-    file.write(repr(bigbeatlocation))
-    file.close()
-    if(os.path.exists("dat/%s.wav" % filename)):
-        os.remove("dat/%s.wav" % filename)
-    return repr(bigbeatlocation)
+    return "dat/%s.bpf" % filename
