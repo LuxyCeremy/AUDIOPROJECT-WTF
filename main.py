@@ -865,12 +865,12 @@ def input2(mainbeatpoint, beatsecond):
                         IS_NOT_AUTO = True
                         FAILURECOUNT = 0
                         LIGHT_DECREASE = 0
-                    print("[{:_^30}]".format(TOTALCOUNT))
+                    # print("[{:_^30}]".format(TOTALCOUNT))
                     break
         else:
             if i + 1 < len(mainbeatpoint) and mainbeatpoint[i + 1] - mainbeatpoint[i] < 6 * beatsecond:
                 FAILURECOUNT += 1
-                print("[{:^^30}]".format(FAILURECOUNT))
+                # print("[{:^^30}]".format(FAILURECOUNT))
             else:
                 FAILURECOUNT = 0
         if IS_NOT_AUTO == True:

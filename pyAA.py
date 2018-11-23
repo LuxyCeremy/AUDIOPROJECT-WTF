@@ -7,13 +7,15 @@ from librosa import load, frames_to_time
 import os
 from librosa.beat import beat_track
 from librosa.onset import onset_strength
-from librosa.effects import percussive
-from librosa.output import write_wav
+from librosa.feature import rmse
 import numpy as np
+import matplotlib.pyplot as plt
 import time
 
-ONSET_DETECT_RATIO = 1000
+ONSET_DETECT_RATIO = 1.2
 TYPE = "kaiser_fast"
+
+
 # TYPE = 'kaiser_best'
 
 
@@ -47,27 +49,30 @@ def getbeatpoint(filename, filepath):
 
 def writebpf(filename, filepath):
     wav_filename = audioconvert.convert_to_monowav(filename, filepath)
-    # data, samplerate = sf.read(filename, dtype='float32')
     timestart = time.time()
     y, sr = load(wav_filename, dtype="float32", res_type=TYPE)
-    # --------------------WRITE FILE TO TEST
 
-    # maxv = np.iinfo(np.int16).max
-    # write_wav("out_int16.wav", y_perc, sr)
-    # --------------------
     print("{LOAD TIME}:%f" % (time.time() - timestart))
     tempo, beats = beat_track(y=y, tightness=100)  # 计算主要节拍点
-    tempo1, beats1 = beat_track(y=y, tightness=2)  # 计算节拍点，tightness就是对节拍的吸附性，越低越混乱
-    onset_envolope = onset_strength(y=y)
+    tempo1, beats1 = beat_track(y=y, tightness=1)  # 计算节拍点，tightness就是对节拍的吸附性，越低越混乱
+    onset_envelope = onset_strength(y=y)
+    rms_envelope = rmse(y=y)
+    # -----------RMS ENVELOPE
+    # plt.plot(rms_envelope.T)
+    # plt.tight_layout()
+    # plt.show()
+
+    MAX_RMS = np.max(rms_envelope)
     onset_all_beat = []
     for beat in beats1:
-        onset_all_beat.append(onset_envolope[beat])
-    average_onset = np.mean(onset_all_beat)
+        onset_all_beat.append(onset_envelope[beat])
+    AVERAGE_ONSET = np.mean(onset_all_beat)
     new_frames_list = []
     for beat in beats1:
-        if onset_envolope[beat] > average_onset / ONSET_DETECT_RATIO:
+        if onset_envelope[beat] > AVERAGE_ONSET / ONSET_DETECT_RATIO \
+                or rms_envelope.T[beat] > MAX_RMS / 1.5:
             new_frames_list.append(beat)
-    print("{MAX_ONSET}:%f" % onset_envolope.max())
+    print("{MAX_ONSET}:%f" % onset_envelope.max())
     new_beats_frame = np.array(new_frames_list)
     mainbeatlocation = frames_to_time(beats)
     beatlocation = frames_to_time(new_beats_frame).tolist()
