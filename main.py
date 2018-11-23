@@ -894,7 +894,9 @@ def START():
     print("[STARTFLASH]%f" % time.time())
     flash_thread = threading.Thread(target=flash, args=(beatpoint, beatmain, 55 / tempo))
     flash_thread.start()
+    plt_thread = threading.Thread(target=pyAA.plt_show)
     playAudio.play(FILE_PATH)
+    os._exit(0)
 
 
 def START2():
@@ -937,7 +939,7 @@ if __name__ == "__main__":
 
     if launchpad.Check():  # 如果launchpad已经连接
         launchpad.Reset()
-        mode = 2
+        mode = 1
         # 0：监听模式1:播放模式；2：简易模式
         if mode == 0:
             listen()
@@ -945,7 +947,7 @@ if __name__ == "__main__":
             tk = Tk()
             tk.withdraw()
             FILE_PATH = askopenfilename()  # 打开文件，要求MP3格式
-            tk.quit()
+            tk.destroy()
             if FILE_PATH:
                 FILE_NAME = os.path.basename(os.path.realpath(FILE_PATH))
                 if mode == 1:
