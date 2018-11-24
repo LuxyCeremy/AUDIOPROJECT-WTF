@@ -1,12 +1,17 @@
-from launchpad_py import Launchpad
+#!/usr/bin/evn python
+# -*- coding: utf-8 -*-
+
 import time
 import random
-import threading
-import pyAA
-import playAudio
 import os
+import threading
+
+from launchpad_py import Launchpad
 from tkinter import Tk
 from tkinter.filedialog import askopenfilename
+
+import pyAA
+import playAudio
 
 FILE_NAME = ""
 FILE_PATH = ""
@@ -138,7 +143,7 @@ def spread(key, launchpad, delay, STYLE):
     # launchpad.Reset()
 
 
-def spread_return(key, launchpad, delay):
+def spread_return(key, launchpad, interval):
     global inSpread
     x = 0
     y = 0
@@ -148,7 +153,8 @@ def spread_return(key, launchpad, delay):
     else:
         (x, y) = KEY_TO_XY(key)
         print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]" % (x, y))
-    # print(x,y)
+    delay_rate = max(abs(x + y - 8), abs(y - x - 1))
+    delay = (interval - 0.255) / (36 + (delay_rate * 4))
     [(R, G)] = RANDOM_RGY(1)
     launchpad.LedCtrlXY(x, y, R, G)
 
@@ -411,6 +417,8 @@ def randomchar(launchpad, interval):
     random_char = random.choice("AXHIUOV")
     [(R, G)] = RANDOM_RGY(1)
     for i in range(int(interval / 0.1)):
+        if i % 2 == 0:
+            random_char = random.choice("AXHIUOV")
         launchpad.LedCtrlChar(random_char, R, G)
         launchpad.LedCtrlRawRapid([0 for i in range(64)])
         R -= 1
@@ -586,11 +594,35 @@ def edge_cut(launchpad, delay, reverse, PERIOD):
     print("deltatime:%f\tedge_cut" % (time.time() - timestart))
 
 
+def star_stream_get_txty(x, y, direction):
+    if direction == 1:
+        tx = x
+        tx_shutdown = (tx - 1) % 8
+        ty = y
+        ty_shutdown = y
+    if direction == 2:
+        tx = 7 - x
+        tx_shutdown = (tx + 1) % 8
+        ty = 9 - y
+        ty_shutdown = ty
+    if direction == 3:
+        tx = y - 1
+        tx_shutdown = tx
+        ty = x + 1
+        ty_shutdown = (ty - 1) % 8
+    if direction == 4:
+        tx = 7 - (y - 1)
+        tx_shutdown = tx
+        ty = 9 - (x + 1)
+        ty_shutdown = (ty - 1) % 8 + 2
+    return (tx, ty, tx_shutdown, ty_shutdown)
+
+
 def star_stream(launchpad, interval):
     timestart = time.time()
     stars = []
-
-    stars_count = int((interval - 0.3) / 0.065)
+    DIRECTION = random.randint(1, 4)
+    stars_count = int((interval - 0.4) / 0.0667)
     stars_to_pop = []
     last_two_y = []
     for r in range(stars_count + 8):
@@ -598,7 +630,7 @@ def star_stream(launchpad, interval):
         if r < stars_count:
             y = -1
             while y == -1 or y in last_two_y:
-                y = random.randint(1, 9)
+                y = random.randint(1, 8)
             [(temp_color_r, temp_color_g)] = RANDOM_RGY(1)
             stars.append((0, y, temp_color_r, temp_color_g))
             last_two_y.append(y)
@@ -606,8 +638,10 @@ def star_stream(launchpad, interval):
                 last_two_y.pop(0)
         for i in range(len(stars)):
             (x, y, temp_color_r, temp_color_g) = stars[i]
-            launchpad.LedCtrlXY(x, y, temp_color_r, temp_color_g)
-            launchpad.LedCtrlXY(x - 1 % 8, y, 0, 0)
+            (tx, ty, tx_shutdown, ty_shutdown) = star_stream_get_txty(x, y, DIRECTION)
+
+            launchpad.LedCtrlXY(tx, ty, temp_color_r, temp_color_g)
+            launchpad.LedCtrlXY(tx_shutdown, ty_shutdown, 0, 0)
             if x == 7:
                 stars_to_pop.append(i)
             else:
@@ -615,7 +649,8 @@ def star_stream(launchpad, interval):
         time.sleep(0.05)
         for stp in stars_to_pop:
             (x, y, r, g) = stars.pop(stp)
-            launchpad.LedCtrlXY(x % 8, y, 0, 0)
+            (tx, ty, tx_shutdown, ty_shutdown) = star_stream_get_txty(x, y, DIRECTION)
+            launchpad.LedCtrlXY(tx, ty, 0, 0)
         stars_to_pop = []
     print("deltatime:%f\tstar_stream" % (time.time() - timestart))
 
@@ -663,12 +698,12 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
             while True and i < len(beatpoint) - 2:
                 temp_interval = beatpoint[i + 2] - beatpoint[i + 1]
 
-                print("{%d}{%f}" % (i, temp_interval))
                 if temp_interval > 6 * beatsecond:
                     interval += temp_interval
                     i = i + 1
                 else:
                     break
+            print("{%d}{%f}" % (i, interval))
             flash_thread = threading.Thread(target=star_stream,
                                             args=(launchpad, interval))
         # elif interval > 6 * beatsecond:
@@ -676,8 +711,7 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
         #                                     args=(launchpad, interval))
         elif interval > 2 * beatsecond:
             flash_thread = threading.Thread(target=spread_return,
-                                            args=(BUTTONID if BUTTONID != -1 else None, launchpad,
-                                                  (interval - 0.25) / 64))
+                                            args=(BUTTONID if BUTTONID != -1 else None, launchpad, interval))
 
         elif inCircle == -1:
             if beatmain[i] < 0.005:  # 如果强节拍系数小于5毫秒就判断是一个强拍（然而真正的强拍差都是0.0f，我这就算网开拌面了）
@@ -884,8 +918,8 @@ def input2(mainbeatpoint, beatsecond):
                 LIGHT_DECREASE = 3
 
 
-def START():
-    data = eval(pyAA.getbeatpoint(FILE_NAME, FILE_PATH))
+def START(rewrite=False):
+    data = eval(pyAA.getbeatpoint(FILE_NAME, FILE_PATH, rewrite))
     tempo = data[0]
     beatpoint = data[1]
     beatmain = data[2]
@@ -894,7 +928,6 @@ def START():
     print("[STARTFLASH]%f" % time.time())
     flash_thread = threading.Thread(target=flash, args=(beatpoint, beatmain, 55 / tempo))
     flash_thread.start()
-    # plt_thread = threading.Thread(target=pyAA.plt_show)
     playAudio.play(FILE_PATH)
     os._exit(0)
 
@@ -908,10 +941,6 @@ def START2():
     input_thread = threading.Thread(target=input2, args=(mode2_beatpoint, 55 / tempo))
     input_thread.start()
     START()
-
-
-def START3():
-    pyAA.plt_show_solo(FILE_NAME, FILE_PATH)
 
 
 launchpad = Launchpad()
@@ -933,16 +962,20 @@ def listen():
             if a[0][0][2] == 127:
                 print(a)
                 # t1 = threading.Thread(target=lightAllRandom,args=(launchpad,0.2))
-                interval = 1
-                t1 = threading.Thread(target=spin, args=(launchpad, (interval - 0.15) / 16 if interval > 0.15 else 0,
-                                                         4))
+                interval = 2
+                delay = (interval - 0.25) / 64
+                t1 = threading.Thread(target=spread_return, args=(a[0][0][1], launchpad, 5))
                 t1.start()
 
 
 if __name__ == "__main__":
 
-    mode = 3
-    # 0：监听模式;1:播放模式;2：简易模式;3:画图模式
+    mode = 1
+    # 0:监听模式;
+    # 1:播放模式;
+    # 2:简易模式;
+    # 3:重写播放模式;
+    # 10:画图模式;
     if launchpad.Check():  # 如果launchpad已经连接
         launchpad.Reset()
     else:
@@ -961,7 +994,9 @@ if __name__ == "__main__":
             elif mode == 2:
                 START2()
             elif mode == 3:
-                START3()
+                START(rewrite=True)
+            elif mode == 10:
+                pyAA.initialize_bpf(FILE_NAME, FILE_PATH, True)
+                playAudio.play(FILE_PATH)
         else:
             print("[{:-^60}]".format("Mode Error"))
-
