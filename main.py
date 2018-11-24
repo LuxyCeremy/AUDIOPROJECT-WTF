@@ -938,42 +938,10 @@ if __name__ == "__main__":
 
     if launchpad.Check():  # 如果launchpad已经连接
         launchpad.Reset()
-        mode = 2
+        mode = 1
         # 0：监听模式1:播放模式；2：简易模式
         if mode == 0:
             listen()
-        else:
-            tk = Tk()
-            tk.withdraw()
-            FILE_PATH = askopenfilename()  # 打开文件，要求MP3格式
-            tk.quit()
-            if FILE_PATH:
-                FILE_NAME = os.path.basename(os.path.realpath(FILE_PATH))
-                if mode == 1:
-                    START()
-                elif mode == 2:
-                    START2()
-            else:
-                pass
-
-
-    else:
-        print("[{:-^60}]".format("Can't Find Launchpad"))
-    if mode == 0:
-        listen()
-    else:
-        tk = Tk()
-        tk.withdraw()
-        FILE_PATH = askopenfilename()  # 打开文件，要求MP3格式
-        tk.destroy()
-        if FILE_PATH:
-            FILE_NAME = os.path.basename(os.path.realpath(FILE_PATH))
-            if mode == 1:
-                START()
-            elif mode == 2:
-                START2()
-            elif mode == 3:
-                START3()
         else:
             tk = Tk()
             tk.withdraw()
