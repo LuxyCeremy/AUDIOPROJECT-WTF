@@ -609,7 +609,7 @@ def star_stream_get_txty(x, y, direction):
         tx = y - 1
         tx_shutdown = tx
         ty = x + 1
-        ty_shutdown = (ty - 1) % 8
+        ty_shutdown = (ty - 2) % 8 + 1
     if direction == 4:
         tx = 7 - (y - 1)
         tx_shutdown = tx
@@ -918,8 +918,9 @@ def input2(mainbeatpoint, beatsecond):
                 LIGHT_DECREASE = 3
 
 
-def START(rewrite=False):
-    data = eval(pyAA.getbeatpoint(FILE_NAME, FILE_PATH, rewrite))
+def START(data=None, rewrite=False):
+    if not data:
+        data = eval(pyAA.getbeatpoint(FILE_NAME, FILE_PATH, rewrite))
     tempo = data[0]
     beatpoint = data[1]
     beatmain = data[2]
@@ -940,7 +941,7 @@ def START2():
     flash2_thread.start()
     input_thread = threading.Thread(target=input2, args=(mode2_beatpoint, 55 / tempo))
     input_thread.start()
-    START()
+    START(data=data)
 
 
 launchpad = Launchpad()
@@ -970,7 +971,7 @@ def listen():
 
 if __name__ == "__main__":
 
-    mode = 1
+    mode = 2
     # 0:监听模式;
     # 1:播放模式;
     # 2:简易模式;

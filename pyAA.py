@@ -30,7 +30,7 @@ font = FontProperties(fname='msyh.ttf')
 # TYPE = 'scipy'
 
 
-def getbeatpoint(filename, filepath, rewrite):
+def getbeatpoint(filename, filepath, rewrite=False):
     '''
 
     :param filename:
@@ -83,6 +83,8 @@ def plt_show(TITLE, rms_list, onset_all_beat, frame_all_beat, MAX_RMS, AVERAGE_R
     plt.plot(Times1, np.array(onset_all_beat))
     plt.hlines(AVERAGE_ONSET / ONSET_DETECT_RATIO, 0, Times.max(), colors='r',
                label='AVERAGE_ONSET / ONSET_DETECT_RATIO')
+    plt.hlines(AVERAGE_ONSET, 0, Times.max(), colors='G',
+               label='AVERAGE_ONSET')
     draw_thread = threading.Thread(target=time_line_draw, args=(MAXs, Times.max(), plot1, plot2))
     draw_thread.start()
     plt.legend()
@@ -96,13 +98,13 @@ def time_line_draw(MAXs, Time, *plots):
     while True:
         time_lines = []
         for i, plot in enumerate(plots):
-            time_lines.append(plot.vlines(time.time() - timestart, 0, MAXs[i]))
+            time_lines.append(plot.vlines(time.time() - timestart, 0, MAXs[i], colors='orange'))
         time.sleep(0.2)
         plt.draw()
         for time_line in time_lines:
             time_line.remove()
         if time.time() - timestart > Time:
-            return 
+            return
 
 
 def plt_show_solo(filename, filepath):
@@ -178,6 +180,7 @@ def initialize_bpf(filename, filepath, only_show=False, rewrite=False):
         mainbeatlocation = frames_to_time(beats)
         beatlocation = frames_to_time(new_beats_frame).tolist()
         beatmain = []
+
         for beat in beatlocation:  # 分别计算出每个节拍到主要节拍点的距离，也就是这个节拍的主要程度
 
             p = abs(mainbeatlocation - beat)
