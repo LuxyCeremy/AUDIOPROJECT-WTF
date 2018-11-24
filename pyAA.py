@@ -11,10 +11,8 @@ from librosa.feature import rmse
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-import threading
 
 ONSET_DETECT_RATIO = 1.2
-RMS_RATIO = 1.5
 TYPE = "kaiser_fast"
 
 
@@ -49,28 +47,6 @@ def getbeatpoint(filename, filepath):
     return content
 
 
-def plt_show(TITLE, T, onset_all_beat, frame_all_beat, MAX_RMS, AVERAGE_RMS, AVERAGE_ONSET):
-    Times = frames_to_time(np.array([i for i in range(T.size)]))
-    plt.subplot(2, 1, 1)
-    plt.title(TITLE)
-    plt.plot(Times, T)
-    plt.hlines(MAX_RMS / RMS_RATIO, 0, Times.max(), colors='r',
-               label='MAX_RMS / RMS_RATIO')
-    plt.hlines(AVERAGE_RMS, 0, Times.max(), colors='g',
-               label='AVERAGE_RMS')
-    plt.legend()
-    plt.ylabel('RMS_ENVELOPE')
-    Times1 = frames_to_time(np.array(frame_all_beat))
-    plt.subplot(2, 1, 2)
-    plt.plot(Times1, np.array(onset_all_beat))
-    plt.hlines(AVERAGE_ONSET / ONSET_DETECT_RATIO, 0, Times.max(), colors='r',
-               label='AVERAGE_ONSET / ONSET_DETECT_RATIO')
-    plt.legend()
-    plt.ylabel('ONSET_ENVELOPE')
-    plt.xlabel('Time (s)')
-    plt.show()
-
-
 def writebpf(filename, filepath):
     wav_filename = audioconvert.convert_to_monowav(filename, filepath)
     timestart = time.time()
@@ -82,22 +58,19 @@ def writebpf(filename, filepath):
     onset_envelope = onset_strength(y=y)
     rms_envelope = rmse(y=y)
     # -----------RMS ENVELOPE
+    # plt.plot(rms_envelope.T)
+    # plt.tight_layout()
+    # plt.show()
 
     MAX_RMS = np.max(rms_envelope)
-    AVERAGE_RMS = np.mean(rms_envelope)
     onset_all_beat = []
-    frame_all_beat = []
     for beat in beats1:
         onset_all_beat.append(onset_envelope[beat])
-        frame_all_beat.append(beat)
     AVERAGE_ONSET = np.mean(onset_all_beat)
     new_frames_list = []
-    t1 = threading.Thread(target=plt_show,
-                          args=(filename,rms_envelope.T, onset_all_beat, frame_all_beat, MAX_RMS, AVERAGE_RMS, AVERAGE_ONSET))
-    t1.start()
     for beat in beats1:
         if onset_envelope[beat] > AVERAGE_ONSET / ONSET_DETECT_RATIO \
-                or rms_envelope.T[beat] > MAX_RMS / RMS_RATIO:
+                or rms_envelope.T[beat] > MAX_RMS / 1.5:
             new_frames_list.append(beat)
     print("{MAX_ONSET}:%f" % onset_envelope.max())
     new_beats_frame = np.array(new_frames_list)
