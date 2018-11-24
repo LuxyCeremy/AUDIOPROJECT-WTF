@@ -894,7 +894,7 @@ def START():
     print("[STARTFLASH]%f" % time.time())
     flash_thread = threading.Thread(target=flash, args=(beatpoint, beatmain, 55 / tempo))
     flash_thread.start()
-    # plt_thread = threading.Thread(target=pyAA.plt_show)
+    plt_thread = threading.Thread(target=pyAA.plt_show)
     playAudio.play(FILE_PATH)
 
 
@@ -907,10 +907,6 @@ def START2():
     input_thread = threading.Thread(target=input2, args=(mode2_beatpoint, 55 / tempo))
     input_thread.start()
     START()
-
-
-def START3():
-    pyAA.plt_show_solo(FILE_NAME, FILE_PATH)
 
 
 launchpad = Launchpad()
@@ -940,8 +936,6 @@ def listen():
 
 if __name__ == "__main__":
 
-    mode = 3
-    # 0：监听模式;1:播放模式;2：简易模式;3:画图模式
     if launchpad.Check():  # 如果launchpad已经连接
         launchpad.Reset()
         mode = 2
@@ -981,5 +975,19 @@ if __name__ == "__main__":
             elif mode == 3:
                 START3()
         else:
-            print("[{:-^60}]".format("Mode Error"))
+            tk = Tk()
+            tk.withdraw()
+            FILE_PATH = askopenfilename()  # 打开文件，要求MP3格式
+            tk.destroy()
+            if FILE_PATH:
+                FILE_NAME = os.path.basename(os.path.realpath(FILE_PATH))
+                if mode == 1:
+                    START()
+                elif mode == 2:
+                    START2()
+            else:
+                pass
 
+
+    else:
+        print("[{:-^60}]".format("Can't Find Launchpad"))
