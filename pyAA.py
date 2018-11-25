@@ -5,8 +5,10 @@
 import os
 import time
 import threading
+import random
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.colors as colors
 from multiprocessing import Process
 from matplotlib.font_manager import FontProperties
 
@@ -80,7 +82,10 @@ def plt_show(TITLE, rms_list, onset_all_beat, frame_all_beat, MAX_RMS, AVERAGE_R
     plt.ylabel('RMS_ENVELOPE')
     Times1 = frames_to_time(np.array(frame_all_beat))
     plot2 = plt.subplot(2, 1, 2)
-    plt.plot(Times1, np.array(onset_all_beat))
+    RGBAs = []
+    for onset in onset_all_beat:
+        RGBAs.append(colors.to_rgba('tab:blue', 1 if onset > AVERAGE_ONSET / ONSET_DETECT_RATIO else 0.1))
+    plt.scatter(Times1, np.array(onset_all_beat), c=RGBAs)
     plt.hlines(AVERAGE_ONSET / ONSET_DETECT_RATIO, 0, Times.max(), colors='r',
                label='AVERAGE_ONSET / ONSET_DETECT_RATIO')
     plt.hlines(AVERAGE_ONSET, 0, Times.max(), colors='G',
