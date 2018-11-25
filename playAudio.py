@@ -66,7 +66,3 @@ def play(filepath):
 def isplaying():
     return isPlaying
 
-
-if __name__ == '__main__':
-    audio_file = 'L:\CloudMusic\オールグリーン.mp3'  # 指定录音文件
-    play(audio_file)
