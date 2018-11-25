@@ -41,10 +41,10 @@ def getbeatpoint(filename, filepath, rewrite=False):
     一个包含所有信息的三元数组：BPM，节拍点，强节拍系数
 
     '''
-    if os.path.exists("dat/%s.bpf" % filename) \
+    if os.path.exists("dat/bpf/%s.bpf" % filename) \
             and os.path.exists("dat/plt/%s.plt" % filename) \
             and not rewrite:
-        file = open("dat/%s.bpf" % filename, mode="r")
+        file = open("dat/bpf/%s.bpf" % filename, mode="r")
         plt_file = open("dat/plt/%s.plt" % filename, mode="r")
         plt_file_content = eval(plt_file.read())
         plt_process = Process(target=plt_show, args=plt_file_content)
@@ -186,9 +186,9 @@ def initialize_bpf(filename, filepath, only_show=False, rewrite=False):
             p = abs(mainbeatlocation - beat)
             # print("%f:   %f" % (beat, p.min()))
             beatmain.append(p.min())
-        file = open("dat/%s.bpf" % filename, mode="w")
+        file = open("dat/bpf/%s.bpf" % filename, mode="w")
         file.write(repr([tempo, beatlocation, beatmain, mainbeatlocation.tolist()]))
         file.close()
     if (os.path.exists("dat/%s.wav" % filename)):
         os.remove("dat/%s.wav" % filename)
-    return "dat/%s.bpf" % filename
+    return "dat/bpf/%s.bpf" % filename

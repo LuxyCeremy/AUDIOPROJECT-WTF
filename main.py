@@ -60,6 +60,21 @@ def samebeat(beatpointcut):
         return True
 
 
+def get_button_pressed():
+    global BUTTONID
+    timestart = time.time()
+    if not IS_NOT_AUTO:
+        return -1
+    while True:
+        time.sleep(0.01)
+        if BUTTONID != -1:
+            temp_button_id, BUTTONID = BUTTONID, 0
+            break
+        if time.time() - timestart > 0.2:
+            return -1
+    return temp_button_id
+
+
 def spread(key, launchpad, delay, STYLE):
     global inSpread
     x = 0
@@ -70,7 +85,6 @@ def spread(key, launchpad, delay, STYLE):
     else:
         (x, y) = KEY_TO_XY(key)
 
-        print("[[[[[[[[[[[[[[%d%d]]]]]]]]]]]]]" % (x, y))
     # print(x,y)
     [(R, G)] = RANDOM_RGY(1)
     launchpad.LedCtrlXY(x, y, R, G)
@@ -535,9 +549,15 @@ def testblink(launchpad):
     launchpad.Reset()
 
 
-def slash_spread(launchpad, delay, reverse):
+def slash_spread(key, launchpad, delay, reverse):
     timestart = time.time()
     [(R, G)] = RANDOM_RGY(1)
+    if key:
+        (x, y) = KEY_TO_XY(key)
+        if abs(x + y - 8) < abs(y - x - 1):
+            reverse = 0
+        if abs(x + y - 8) > abs(y - x - 1):
+            reverse = 1
     for r in range(10):
         for x in range(8):
             t = x
@@ -552,10 +572,15 @@ def slash_spread(launchpad, delay, reverse):
     print("deltatime:%f\tslash_spread" % (time.time() - timestart))  # 0.13
 
 
-def slash_spread2(launchpad, delay, reverse):
+def slash_spread2(key, launchpad, delay, reverse):
     timestart = time.time()
     [(R, G)] = RANDOM_RGY(1)
-
+    if key:
+        (x, y) = KEY_TO_XY(key)
+        if abs(x + y - 8) < abs(y - x - 1):
+            reverse = 0
+        if abs(x + y - 8) > abs(y - x - 1):
+            reverse = 1
     for r in range(16):
         for x in range(8):
             t = x
@@ -706,12 +731,12 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
             print("{%d}{%f}" % (i, interval))
             flash_thread = threading.Thread(target=star_stream,
                                             args=(launchpad, interval))
-        # elif interval > 6 * beatsecond:
-        #     flash_thread = threading.Thread(target=spin_thin_loop,
-        #                                     args=(launchpad, interval))
         elif interval > 2 * beatsecond:
+            temp_button_id = get_button_pressed()
+
             flash_thread = threading.Thread(target=spread_return,
-                                            args=(BUTTONID if BUTTONID != -1 else None, launchpad, interval))
+                                            args=(
+                                                temp_button_id if temp_button_id != -1 else None, launchpad, interval))
 
         elif inCircle == -1:
             if beatmain[i] < 0.005:  # 如果强节拍系数小于5毫秒就判断是一个强拍（然而真正的强拍差都是0.0f，我这就算网开拌面了）
@@ -724,20 +749,30 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
                         if samebeat(beatpoint[i:i + 3]):
                             inCircle = 51
                     if style == 3:
+                        temp_button_id = get_button_pressed()
                         flash_thread = threading.Thread(target=slash_spread2,
-                                                        args=(launchpad, (interval - 0.13) / 24, random.randint(0, 1)))
+                                                        args=(
+                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
+                                                            (interval - 0.13) / 24, random.randint(0, 1)))
                     if style == 4:  # LONG
+                        temp_button_id = get_button_pressed()
                         flash_thread = threading.Thread(target=slash_spread,
-                                                        args=(launchpad, (interval - 0.13) / 15, random.randint(0, 1)))
+                                                        args=(
+                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
+                                                            (interval - 0.13) / 15, random.randint(0, 1)))
 
                     if style == 5:
+                        temp_button_id = get_button_pressed()
                         flash_thread = threading.Thread(target=spread,
-                                                        args=(BUTTONID if BUTTONID != -1 else None, launchpad,
-                                                              (interval - 0.13) / 16, 1))
+                                                        args=(
+                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
+                                                            (interval - 0.13) / 16, 1))
                     if flash_thread is None and inCircle == -1:
+                        temp_button_id = get_button_pressed()
                         flash_thread = threading.Thread(target=spread,
-                                                        args=(BUTTONID if BUTTONID != -1 else None, launchpad,
-                                                              (interval - 0.13) / 32, 2))
+                                                        args=(
+                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
+                                                            (interval - 0.13) / 32, 2))
 
                 else:  # 如果是一个短拍
                     style = random.choice([1, 2, 3])
@@ -874,13 +909,14 @@ def input2(mainbeatpoint, beatsecond):
     print("[AUDIO IS PLAYING]%f" % time.time())
     timestart = time.time()
     for i in range(len(mainbeatpoint)):
-        while time.time() - timestart < mainbeatpoint[i] - 0.1:
+        while time.time() - timestart < mainbeatpoint[i] - 0.2:
             # 如果从开始播放到现在的时间还没到绝对节拍时间，那就sleep
             # 这一条保证了任何一个节拍的误差都在10ms之内
             # 也保证了不会出现单线程的脱节情况
             launchpad.ButtonFlush()
             time.sleep(0.01)
-        while time.time() - timestart < mainbeatpoint[i] + 0.1:
+        BUTTONID = -1
+        while time.time() - timestart < mainbeatpoint[i] + 0.2:
             a = launchpad.EventRaw()
 
             time.sleep(0.01)
