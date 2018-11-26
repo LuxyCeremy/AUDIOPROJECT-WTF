@@ -680,6 +680,41 @@ def star_stream(launchpad, interval):
     print("deltatime:%f\tstar_stream" % (time.time() - timestart))
 
 
+def spread_snake(key, launchpad, delay):
+    timestart = time.time()
+    key_to_spread = [(4, 4), (4, 5), (5, 5), (5, 4),  # 1
+                     (5, 3), (4, 3), (3, 3), (3, 4), (3, 5), (3, 6), (4, 6), (5, 6), (6, 6), (6, 5), (6, 4), (6, 3),
+                     # 2
+                     (6, 2), (5, 2), (4, 2), (3, 2), (2, 2), (2, 3), (2, 4), (2, 5), (2, 6), (2, 7),
+                     (3, 7), (4, 7), (5, 7), (6, 7), (7, 7), (7, 6), (7, 5), (7, 4), (7, 3), (7, 2),  # 3
+                     (7, 1), (6, 1), (5, 1), (4, 1), (3, 1), (2, 1), (1, 1),
+                     (1, 2), (1, 3), (1, 4), (1, 5), (1, 6), (1, 7), (1, 8),
+                     (2, 8), (3, 8), (4, 8), (5, 8), (6, 8), (7, 8), (8, 8),
+                     (8, 7), (8, 6), (8, 5), (8, 4), (8, 3), (8, 2), (8, 1)]
+    for xy in key_to_spread:
+        x, y = xy
+        launchpad.LedCtrlXY(x - 1, y, 3, 3)
+        time.sleep(delay)
+    for xy in key_to_spread:
+        x, y = xy
+        launchpad.LedCtrlXY(x - 1, y, 0, 0)
+        time.sleep(delay)
+    print("deltatime:%f\tspread_snake" % (time.time() - timestart))
+
+
+def buttonid_to_style(buttonid):
+    pass
+    x, y = KEY_TO_XY(buttonid)
+    if 2 < x < 5 and 3 < y < 6:
+        return 1
+    elif 2 < x < 5 or 3 < y < 6:
+        return 2
+    elif x + 1 == y or x + y == 8:
+        return 3
+    else:
+        return 4
+
+
 def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
     '''
 
@@ -742,37 +777,43 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
             if beatmain[i] < 0.005:  # 如果强节拍系数小于5毫秒就判断是一个强拍（然而真正的强拍差都是0.0f，我这就算网开拌面了）
                 if interval > beatsecond:  # 如果是一个长拍
                     style = random.randint(1, 6)
-                    if style == 1:
-                        if samebeat(beatpoint[i:i + 4]):
-                            inCircle = 31
-                    if style == 2:
-                        if samebeat(beatpoint[i:i + 3]):
-                            inCircle = 51
-                    if style == 3:
+                    if style == 1 and samebeat(beatpoint[i:i + 4]):
+                        inCircle = 31
+                    elif style == 2 and samebeat(beatpoint[i:i + 3]):
+                        inCircle = 51
+                    else:
                         temp_button_id = get_button_pressed()
-                        flash_thread = threading.Thread(target=slash_spread2,
-                                                        args=(
-                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
-                                                            (interval - 0.13) / 24, random.randint(0, 1)))
-                    if style == 4:  # LONG
-                        temp_button_id = get_button_pressed()
-                        flash_thread = threading.Thread(target=slash_spread,
-                                                        args=(
-                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
-                                                            (interval - 0.13) / 15, random.randint(0, 1)))
+                        button_style = buttonid_to_style(temp_button_id)
+                        if button_style == 3:
+                            flash_thread = threading.Thread(target=slash_spread2,
+                                                            args=(
+                                                                temp_button_id if temp_button_id != -1 else None,
+                                                                launchpad,
+                                                                (interval - 0.13) / 24, random.randint(0, 1)))
+                        if button_style == 2:  # LONG
+                            flash_thread = threading.Thread(target=slash_spread,
+                                                            args=(
+                                                                temp_button_id if temp_button_id != -1 else None,
+                                                                launchpad,
+                                                                (interval - 0.13) / 15, random.randint(0, 1)))
 
-                    if style == 5:
-                        temp_button_id = get_button_pressed()
-                        flash_thread = threading.Thread(target=spread,
-                                                        args=(
-                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
-                                                            (interval - 0.13) / 16, 1))
-                    if flash_thread is None and inCircle == -1:
-                        temp_button_id = get_button_pressed()
-                        flash_thread = threading.Thread(target=spread,
-                                                        args=(
-                                                            temp_button_id if temp_button_id != -1 else None, launchpad,
-                                                            (interval - 0.13) / 32, 2))
+                        if button_style == 4:
+                            flash_thread = threading.Thread(target=spread,
+                                                            args=(
+                                                                temp_button_id if temp_button_id != -1 else None,
+                                                                launchpad,
+                                                                (interval - 0.13) / 16, 1))
+                        if button_style == 1:
+                            flash_thread = threading.Thread(target=spread_snake,
+                                                            args=(temp_button_id if temp_button_id != -1 else None,
+                                                                  launchpad,
+                                                                  (interval - 0.15) / 128))
+                        if flash_thread is None and inCircle == -1:
+                            flash_thread = threading.Thread(target=spread,
+                                                            args=(
+                                                                temp_button_id if temp_button_id != -1 else None,
+                                                                launchpad,
+                                                                (interval - 0.13) / 32, 2))
 
                 else:  # 如果是一个短拍
                     style = random.choice([1, 2, 3])
@@ -999,15 +1040,15 @@ def listen():
             if a[0][0][2] == 127:
                 print(a)
                 # t1 = threading.Thread(target=lightAllRandom,args=(launchpad,0.2))
-                interval = 2
+                interval = 5
                 delay = (interval - 0.25) / 64
-                t1 = threading.Thread(target=spread_return, args=(a[0][0][1], launchpad, 5))
+                t1 = threading.Thread(target=spread_snake, args=(a[0][0][1], launchpad, (interval - 0.15) / 128))
                 t1.start()
 
 
 if __name__ == "__main__":
 
-    mode = 2
+    mode = 0
     # 0:监听模式;
     # 1:播放模式;
     # 2:简易模式;
@@ -1017,7 +1058,7 @@ if __name__ == "__main__":
         launchpad.Reset()
     else:
         print("[{:-^60}]".format("Can't Find Launchpad"))
-    if mode == 0:
+    if mode == 1:
         listen()
     else:
         tk = Tk()
