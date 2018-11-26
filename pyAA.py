@@ -5,6 +5,7 @@
 import os
 import time
 import threading
+import random
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.colors as colors
@@ -46,7 +47,7 @@ def getbeatpoint(filename, filepath, rewrite=False):
             and os.path.exists("dat/plt/%s.plt" % filename) \
             and not rewrite:
         file = open("dat/bpf/%s.bpf" % filename, mode="r")
-        plt_file = open("dat/plt/%s.plt" % filename, mode="r", encoding='utf-8')
+        plt_file = open("dat/plt/%s.plt" % filename, mode="r")
         plt_file_content = eval(plt_file.read())
         plt_process = Process(target=plt_show, args=plt_file_content)
         plt_process.start()
@@ -166,11 +167,11 @@ def initialize_bpf(filename, filepath, only_show=False, rewrite=False):
     new_frames_list = []
     if not os.path.exists("dat/plt/%s.plt" % filename) or rewrite:
         print("No plt found, initializing...")
-        plt_file = open("dat/plt/%s.plt" % filename, mode="w", encoding='utf-8')
+        plt_file = open("dat/plt/%s.plt" % filename, mode="w")
         plt_file.write(repr((filename, rms_envelope.T.tolist(), onset_all_beat, frame_all_beat, MAX_RMS, AVERAGE_RMS,
                              AVERAGE_ONSET)))
         plt_file.close()
-    plt_file = open("dat/plt/%s.plt" % filename, mode="r", encoding='utf-8')
+    plt_file = open("dat/plt/%s.plt" % filename, mode="r")
     plt_file_content = eval(plt_file.read())
     plt_process = Process(target=plt_show, args=plt_file_content)
     plt_process.start()
