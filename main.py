@@ -7,7 +7,7 @@ import os
 import threading
 
 from launchpad_py import Launchpad
-from tkinter import Tk
+from tkinter import Tk, Checkbutton
 from tkinter.filedialog import askopenfilename
 
 import pyAA
@@ -697,14 +697,17 @@ def star_stream(launchpad, interval):
 
 
 def snake_key_locate(key, x, y):
-    if KEY_TO_XY(key) == (3, 4):
-        tx, ty = x, y
-    elif KEY_TO_XY(key) == (3, 5):
-        tx, ty = x, 9 - y
-    elif KEY_TO_XY(key) == (4, 5):
-        tx, ty = 9 - x, 9 - y
-    elif KEY_TO_XY(key) == (4, 4):
-        tx, ty = 9 - x, y
+    if key and key != -1:
+        if KEY_TO_XY(key) == (3, 4):
+            tx, ty = x, y
+        elif KEY_TO_XY(key) == (3, 5):
+            tx, ty = x, 9 - y
+        elif KEY_TO_XY(key) == (4, 5):
+            tx, ty = 9 - x, 9 - y
+        elif KEY_TO_XY(key) == (4, 4):
+            tx, ty = 9 - x, y
+    else:
+        tx,ty = x,y
     return tx, ty
 
 
@@ -879,10 +882,10 @@ def flash(beatpoint, beatmain, beatsecond):  # 用来瞎JB闪的模块
                                 inCircle = 51
                             else:
                                 flash_thread = threading.Thread(target=spread,
-                                                            args=(
-                                                                temp_button_id if temp_button_id != -1 else None,
-                                                                launchpad,
-                                                                (interval - 0.13) / 16, 1))
+                                                                args=(
+                                                                    temp_button_id if temp_button_id != -1 else None,
+                                                                    launchpad,
+                                                                    (interval - 0.13) / 16, 1))
 
                         if flash_thread is None and inCircle == -1:
                             flash_thread = threading.Thread(target=spread,
